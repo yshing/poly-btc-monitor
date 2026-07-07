@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}COPY-TRADE PLAN — POLY BTC MONITOR{% endblock %}
+
+{% macro fmt_money(n) %}
+{{ "{:,.2f}".format(n|float) }}
+{% endmacro %}
+
+{% macro fmt_pct(n) %}
+{{ "{:.2f}".format((n or 0) * 100) }}%
+{% endmacro %}
+
+{% block content %}
+<section class="intro-panel">
+    <div class="intro-box yellow">
+        <h1>COPY-TRADE PLAN</h1>
+        <p>
+            Wallets filtered by: ≥50 markets, ≥60% win rate, ≥15% weighted ROI, ≥$5,000 total invested.
+            Sorted by a blended score of PnL × ROI × win rate × market count.
+        </p>
+    </div>
+    <div class="intro-box black white-text">
+        <p class="big-number">{{ signals|length }}</p>
+        <p class="label">SIGNALS</p>
+    </div>
+    <div class="intro-box blue white-text">
+        <p class="big-number">${{ fmt_money(signals | sum(attribute='recommended_follow_size')) }}</p>
+        <p class="label">TOTAL ALLOC</p>
+    </div>
+</section>
+
+<section class="plan-grid">
+    {% for s in signals %}
+    <article class="signal-card {% if s.confidence == 'HIGH' %}red{% elif s.confidence == 'MEDIUM' %}blue{% else %}yellow{% endif %}">
+        <div class="signal-rank">{{ s.rank }}</div>
+        <div class="signal-body">
+            <h3>
+                <a href="{{ url_for('wallet', address=s.wallet) }}">{{ s.wallet[:10] }}...{{ s.wallet[-8:] }}</a>
+            </h3>
+            <div class="signal-tags"
+                >
+                <span class="tag confidence {{ s.confidence|lower }}">{{ s.confidence }}</span>
+                <span class="tag strategy">{{ s.strategy }}</span>
+            </div>
+            <p class="rationale">{{ s.rationale }}</p>
+            <div class="signal-stats"
+                >
+                <div class="stat">
+                    <span class="stat-label">FOLLOW</span>
+                    <span class="stat-value">${{ fmt_money(s.recommended_follow_size) }}</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">WIN RATE</span>
+                    <span class="stat-value">{{ fmt_pct(s.expected_win_rate) }}</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">AVG ROI</span>
+                    <span class="stat-value">{{ fmt_pct(s.avg_roi) }}</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">TOTAL PNL</span>
+                    <span class="stat-value">${{ fmt_money(s.total_pnl) }}</span>
+                </div>
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+</section>
+
+<section class="rules-panel">
+    <div class="rules-header black white-text">
+        <h2>EXECUTION RULES</h2>
+    </div>
+    <div class="rules-list">
+        <ol>
+            <li>Monitor these wallets' new positions on Polymarket BTC Up/Down 5m markets.</li>
+            <li>Copy their net directional bias (Up/Down) within 1–2 blocks of their trade.</li>
+            <li>Size each position at ~10–20% of the wallet's recommended follow size.</li>
+            <li>Stop copying a wallet if its trailing 20-market win rate drops below 50%.</li>
+            <li>Split capital across HIGH/MEDIUM confidence wallets; keep LOW as a small basket.</li>
+        </ol>
+    </div>
+</section>
+{% endblock %}

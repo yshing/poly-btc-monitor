@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}POLY BTC MONITOR{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/de_stijl.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="grid-header">
+            <div class="brand red">
+                <a href="{{ url_for('index') }}">POLY BTC<br>MONITOR</a>
+            </div>
+            <nav class="nav-blocks">
+                <a href="{{ url_for('index') }}" class="nav-block blue {% if request.endpoint == 'index' %}active{% endif %}">OVERVIEW</a>
+                <a href="{{ url_for('plan') }}" class="nav-block yellow {% if request.endpoint == 'plan' %}active{% endif %}">COPY TRADE</a>
+                <a href="{{ url_for('wallets') }}" class="nav-block white {% if request.endpoint == 'wallets' %}active{% endif %}">WALLETS</a>
+            </nav>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="grid-footer">
+            <div class="footer-block black white-text">
+                ON-CHAIN ANALYSIS FOR POLYMARKET BTC UP/DOWN 5M MARKETS
+            </div>
+            <div class="footer-block white">
+                DATA RANGE: 2026-06-29 — 2026-07-06
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

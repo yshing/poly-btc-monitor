@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}OVERVIEW — POLY BTC MONITOR{% endblock %}
+
+{% macro fmt_money(n) %}
+{{ "{:,.2f}".format(n|float) }}
+{% endmacro %}
+
+{% macro fmt_pct(n) %}
+{{ "{:+.2f}".format((n or 0) * 100) }}%
+{% endmacro %}
+
+{% block content %}
+<section class="hero-grid">
+    <div class="hero-panel yellow">
+        <h2>MARKETS</h2>
+        <p class="big-number">{{ summary.markets }}</p>
+        <p class="label">{{ summary.resolved }} RESOLVED</p>
+    </div>
+    <div class="hero-panel blue white-text">
+        <h2>WALLETS</h2>
+        <p class="big-number">{{ "{:,}".format(summary.wallets) }}</p>
+        <p class="label">ACTIVE IN WEEK</p>
+    </div>
+    <div class="hero-panel red white-text">
+        <h2>TRADES IN DB</h2>
+        <p class="big-number">{{ "{:,}".format(summary.trades) }}</p>
+        <p class="label">SAMPLED RECORDS</p>
+    </div>
+    <div class="hero-panel white">
+        <h2>CHAIN LOGS</h2>
+        <p class="big-number">17.3M</p>
+        <p class="label">ORDERFILLED SCANNED</p>
+    </div>
+</section>
+
+<section class="split-grid">
+    <div class="panel">
+        <div class="panel-header red white-text">
+            <h2>TOP 10 WINNERS</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>WALLET</th>
+                        <th class="num">PNL</th>
+                        <th class="num">ROI</th>
+                        <th class="num">WIN%</th>
+                        <th class="num">MKTS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in winners %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('wallet', address=w.wallet) }}">{{ w.wallet[:8] }}...{{ w.wallet[-6:] }}</a>
+                        </td>
+                        <td class="num pnl-pos">${{ fmt_money(w.total_pnl) }}</td>
+                        <td class="num">{{ fmt_pct(w.avg_roi) }}</td>
+                        <td class="num">{{ "{:.1f}".format((w.win_rate or 0) * 100) }}%</td>
+                        <td class="num">{{ w.markets_traded }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header blue white-text">
+            <h2>TOP 10 LOSERS</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>WALLET</th>
+                        <th class="num">PNL</th>
+                        <th class="num">ROI</th>
+                        <th class="num">WIN%</th>
+                        <th class="num">MKTS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in losers %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('wallet', address=w.wallet) }}">{{ w.wallet[:8] }}...{{ w.wallet[-6:] }}</a>
+                        </td>
+                        <td class="num pnl-neg">${{ fmt_money(w.total_pnl) }}</td>
+                        <td class="num">{{ fmt_pct(w.avg_roi) }}</td>
+                        <td class="num">{{ "{:.1f}".format((w.win_rate or 0) * 100) }}%</td>
+                        <td class="num">{{ w.markets_traded }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="cta-grid">
+    <a href="{{ url_for('plan') }}" class="cta-block red white-text">
+        <span class="cta-title">VIEW COPY-TRADE PLAN</span>
+        <span class="cta-sub">15 QUALIFIED WALLETS</span>
+    </a>
+</section>
+{% endblock %}

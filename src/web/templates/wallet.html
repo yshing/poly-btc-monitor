@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ wallet }} — POLY BTC MONITOR{% endblock %}
+
+{% macro fmt_money(n) %}
+{{ "{:,.2f}".format(n|float) }}
+{% endmacro %}
+
+{% macro fmt_pct(n) %}
+{{ "{:.2f}".format((n or 0) * 100) }}%
+{% endmacro %}
+
+{% block content %}
+{% if stats %}
+<section class="intro-panel">
+    <div class="intro-box {% if stats.total_pnl > 0 %}red{% elif stats.total_pnl < 0 %}blue{% else %}yellow{% endif %} white-text">
+        <h1>{{ wallet[:8] }}...{{ wallet[-6:] }}</h1>
+        <p class="big-number">${{ fmt_money(stats.total_pnl) }}</p>
+        <p class="label">TOTAL PNL</p>
+    </div>
+    <div class="intro-box yellow">
+        <p class="big-number">{{ fmt_pct(stats.avg_roi) }}</p>
+        <p class="label">AVG ROI</p>
+    </div>
+    <div class="intro-box blue white-text">
+        <p class="big-number">{{ "{:.1f}".format((stats.win_rate or 0) * 100) }}%</p>
+        <p class="label">WIN RATE — {{ stats.markets_traded }} MKTS</p>
+    </div>
+</section>
+
+<section class="split-grid">
+    <div class="panel">
+        <div class="panel-header red white-text">
+            <h2>POSITION SUMMARY</h2>
+        </div>
+        <div class="metric-grid">
+            <div class="metric">
+                <span class="metric-label">INVESTED</span>
+                <span class="metric-value">${{ fmt_money(stats.total_invested) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">REVENUE</span>
+                <span class="metric-value">${{ fmt_money(stats.total_revenue) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">SETTLEMENT</span>
+                <span class="metric-value">${{ fmt_money(stats.total_settlement) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">AVG PNL/MKT</span>
+                <span class="metric-value">${{ fmt_money(stats.avg_pnl_per_market) }}</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header black white-text">
+        <h2>RECENT TRADES (last 200)</h2>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>TIME</th>
+                    <th>MARKET</th>
+                    <th>SIDE</th>
+                    <th>ASSET</th>
+                    <th class="num">SIZE</th>
+                    <th class="num">PRICE</th>
+                    <th class="num">USD</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in trades %}
+                <tr>
+                    <td>{{ t.timestamp or '-' }}</td>
+                    <td>{{ t.market_slug[:40] }}{% if t.market_slug|length > 40 %}...{% endif %}</td>
+                    <td class="{% if t.side == 'BUY' %}side-buy{% else %}side-sell{% endif %}">{{ t.side }}</td>
+                    <td>
+                        {% if t.asset == t.token_one %}{{ t.outcome_one }}{% else %}{{ t.outcome_two }}{% endif %}
+                        {% if t.asset == t.token_one and t.winning_outcome == t.outcome_one %}★{% endif %}
+                        {% if t.asset == t.token_two and t.winning_outcome == t.outcome_two %}★{% endif %}
+                    </td>
+                    <td class="num">{{ "{:,.2f}".format(t.size) }}</td>
+                    <td class="num">{{ "{:,.4f}".format(t.price) }}</td>
+                    <td class="num">${{ fmt_money(t.usd_amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% else %}
+<section class="intro-panel">
+    <div class="intro-box blue white-text">
+        <h1>WALLET NOT FOUND</h1>
+        <p>No on-chain activity for <code>{{ wallet }}</code> in the analyzed week.</p>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

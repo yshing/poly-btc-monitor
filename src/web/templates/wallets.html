@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}WALLETS — POLY BTC MONITOR{% endblock %}
+
+{% macro fmt_money(n) %}
+{{ "{:,.2f}".format(n|float) }}
+{% endmacro %}
+
+{% macro fmt_pct(n) %}
+{{ "{:.2f}".format((n or 0) * 100) }}%
+{% endmacro %}
+
+{% block content %}
+<section class="intro-panel">
+    <div class="intro-box blue white-text">
+        <h1>ALL WALLETS</h1>
+        <p>Ranked by total realized PnL over the analyzed week.</p>
+    </div>
+    <div class="intro-box yellow">
+        <p class="big-number">{{ "{:,}".format(total) }}</p>
+        <p class="label">WALLETS WITH INVESTED > 0</p>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="table-wrap">
+        <table class="wallet-table">
+            <thead>
+                <tr>
+                    <th>RANK</th>
+                    <th>WALLET</th>
+                    <th class="num">PNL</th>
+                    <th class="num">ROI</th>
+                    <th class="num">WIN%</th>
+                    <th class="num">MKTS</th>
+                    <th class="num">INVESTED</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in wallets %}
+                <tr class="{% if w.total_pnl > 0 %}row-pos{% else %}row-neg{% endif %}">
+                    <td>{{ loop.index + page * page_size }}</td>
+                    <td>
+                        <a href="{{ url_for('wallet', address=w.wallet) }}">{{ w.wallet[:10] }}...{{ w.wallet[-8:] }}</a>
+                    </td>
+                    <td class="num">${{ fmt_money(w.total_pnl) }}</td>
+                    <td class="num">{{ fmt_pct(w.avg_roi) }}</td>
+                    <td class="num">{{ "{:.1f}".format((w.win_rate or 0) * 100) }}%</td>
+                    <td class="num">{{ w.markets_traded }}</td>
+                    <td class="num">${{ fmt_money(w.total_invested) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
