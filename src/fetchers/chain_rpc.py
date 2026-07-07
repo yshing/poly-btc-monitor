@@ -528,7 +528,7 @@ def backfill_wallet_stats(
         version_start_block: int,
         version_end_ts: int,
         version_end_block: int,
-    ) -> tuple[dict, int, int]:
+    ) -> tuple[dict, int, int, list[dict]]:
         bucket_markets = buckets[bucket]
         start_ts = min(m.get("start_ts", 0) for m in bucket_markets)
         end_ts = max(m.get("end_ts", 0) for m in bucket_markets)
@@ -565,12 +565,14 @@ def backfill_wallet_stats(
         )
         local_log_count = 0
         local_trade_count = 0
+        local_trades: list[dict] = []
 
         for log in logs:
             trades = decode_fast(log, token_to_market)
             if not trades:
                 continue
             local_log_count += 1
+            log_index = log.get("logIndex")
             for trade in trades:
                 if trade.proxy_wallet.lower() in BLACKLISTED_WALLETS:
                     continue
@@ -600,8 +602,22 @@ def backfill_wallet_stats(
                         agg["loser_sold_shares"] += trade.size
                         agg["loser_sold_revenue"] += trade.usd_amount
                 local_trade_count += 1
+                local_trades.append({
+                    "market_slug": trade.market_slug,
+                    "condition_id": trade.condition_id,
+                    "proxy_wallet": trade.proxy_wallet,
+                    "side": trade.side,
+                    "asset": trade.asset,
+                    "size": trade.size,
+                    "price": trade.price,
+                    "usd_amount": trade.usd_amount,
+                    "timestamp": trade.timestamp,
+                    "transaction_hash": trade.transaction_hash,
+                    "log_index": log_index,
+                    "source": "chain",
+                })
 
-        return local_agg, local_log_count, local_trade_count
+        return local_agg, local_log_count, local_trade_count, local_trades
 
     for version_markets in [v1_markets, v2_markets]:
         if not version_markets:
@@ -658,16 +674,18 @@ def backfill_wallet_stats(
                 ): bucket
                 for bucket in buckets.keys()
             }
+            trade_buffer: list[dict] = []
             for future in tqdm(
                 as_completed(futures), total=len(futures), desc=f"backfill-{version}"
             ):
                 try:
-                    local_agg, logs_i, trades_i = future.result()
+                    local_agg, logs_i, trades_i, local_trades = future.result()
                 except Exception as exc:
                     print(f"[chain] bucket worker error: {exc}")
                     continue
                 processed_log_count += logs_i
                 processed_trade_count += trades_i
+                trade_buffer.extend(local_trades)
                 for key, vals in local_agg.items():
                     agg = chunk_agg[key]
                     for kk, vv in vals.items():
@@ -676,16 +694,24 @@ def backfill_wallet_stats(
                     _flush_chunk_agg(chunk_agg)
                     chunk_agg.clear()
                     processed_trade_count = 0
+                if len(trade_buffer) >= flush_every:
+                    db.upsert_trades(trade_buffer)
+                    trade_buffer.clear()
 
         if chunk_agg:
             _flush_chunk_agg(chunk_agg)
             chunk_agg.clear()
+        if trade_buffer:
+            db.upsert_trades(trade_buffer)
+            trade_buffer.clear()
 
     wallet_count = db.compute_wallet_stats_from_staging()
     db.mark_markets_trades_fetched([m["slug"] for m in markets])
+    with db.get_conn() as conn:
+        trade_count = conn.execute("SELECT COUNT(*) AS c FROM trades").fetchone()["c"]
     print(
         f"[chain] backfilled wallet stats for {wallet_count} wallets "
-        f"from {processed_log_count} logs"
+        f"from {processed_log_count} logs ({trade_count} trades persisted)"
     )
     return wallet_count
 
