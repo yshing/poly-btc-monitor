@@ -1,0 +1,6 @@
+/target
+**/*.rs.bk
+Cargo.lock
+.env
+rust_bot_state.json
+*.log
